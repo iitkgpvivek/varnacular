@@ -1089,7 +1089,7 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
     </div>
   </div>
 
-  <div id="appVersionBadge" class="app-version-badge" title="Varnacular (Tap to check for updates)">Varnacular v4.0.0</div>
+  <div id="appVersionBadge" class="app-version-badge" title="Varnacular (Tap to check for updates)">Varnacular v4.0.1</div>
 
 <div class="modal" id="modal">
   <div class="dialog">
@@ -8446,10 +8446,10 @@ function recognizeDevanagariOCR(strokes, expectedChar, strokeOffset = 0, W = nul
 }
 
 // Gemini AI Multimodal Vision Evaluator
-// Primary key: Billed / Paid account with high production quota and zero rate limits
-const DEFAULT_GEMINI_API_KEY = (typeof atob === 'function') ? atob('QVEuQWI4Uk42S0JqRDRDNnh6V1FhV3Zlcl9Kc3VMUEpIVXA2SzFMSUtVU2hwM2d3SE5OV1E=') : '';
-// Backup key: Free tier key for fallback redundancy
-const BACKUP_GEMINI_API_KEY = (typeof atob === 'function') ? atob('QVEuQWI4Uk42TFNjVktUTXZaaW5zQ0dZS0RFMEtSZ2J0VGJCcWx4MGh4a000WWlCR1RiWmc=') : '';
+// Secure Architecture: API keys must NEVER be hardcoded in client HTML.
+// When unconfigured or offline, Varnacular runs 100% on its local on-device OCR engine.
+const DEFAULT_GEMINI_API_KEY = '';
+const BACKUP_GEMINI_API_KEY = '';
 
 function getGeminiApiKey() {
   try {
@@ -11314,7 +11314,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.0.0';
+const CURRENT_APP_VERSION = '4.0.1';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
