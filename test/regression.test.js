@@ -1095,6 +1095,45 @@ test('Varnacular Rebrand, PWA App Icons, Offline Brand Cache & Immersive Splash 
   assert(sw.includes('icon-512-maskable.png'), 'Service worker must cache maskable icon');
 });
 
+// ---------------------------------------------------------
+// SUITE 51: Rasari Google Auth, Cloud Sync & Secure AI Gateway Integration
+// ---------------------------------------------------------
+test('Rasari Google Auth, Cloud Sync & Secure AI Gateway Integration', () => {
+  // 1. Hub Account Section in DOM
+  assert(html.includes('id="hubAccountSection"'), 'Parent hub must contain Account Section');
+  assert(html.includes('id="hubAccountLoggedOut"'), 'Must contain logged out state container');
+  assert(html.includes('id="hubAccountLoggedIn"'), 'Must contain logged in state container');
+  assert(html.includes('id="googleSignInBtn"'), 'Must provide Google Sign In button');
+  assert(html.includes('id="googleSignOutBtn"'), 'Must provide Sign Out button');
+  assert(html.includes('id="hubSyncBadge"'), 'Must display Cloud Sync status badge');
+
+  // 2. Offline bundled Supabase library
+  assert(fs.existsSync(path.join(__dirname, '..', 'js', 'supabase.js')), 'Offline supabase.js bundle must exist on disk');
+  assert(sw.includes('./js/supabase.js'), 'Service worker must cache ./js/supabase.js for 100% offline operation');
+
+  const scriptContent = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+
+  // 3. Supabase Auth and Client functions
+  assert(scriptContent.includes('function initSupabaseAuth('), 'initSupabaseAuth function must exist');
+  assert(scriptContent.includes('async function signInWithGoogle('), 'signInWithGoogle function must exist');
+  assert(scriptContent.includes('async function signOutUser('), 'signOutUser function must exist');
+  assert(scriptContent.includes('function updateAuthUI('), 'updateAuthUI function must exist');
+
+  // 4. Cloud Sync & Telemetry
+  assert(scriptContent.includes('async function syncProgressToCloud('), 'syncProgressToCloud function must exist');
+  assert(scriptContent.includes('async function syncProgressFromCloud('), 'syncProgressFromCloud function must exist');
+  assert(scriptContent.includes('async function logAnalyticsEvent('), 'logAnalyticsEvent function must exist');
+  assert(scriptContent.includes(".schema('varnacular')"), 'Must target dedicated varnacular schema');
+  assert(scriptContent.includes("'user_progress'"), 'Must sync to user_progress table');
+  assert(scriptContent.includes("'analytics_events'"), 'Must log to analytics_events table');
+
+  // 5. Secure AI Gateway Proxy
+  assert(scriptContent.includes('functions/v1/rasari-ai-gateway'), 'evaluateWithGeminiVision must route through rasari-ai-gateway');
+  assert(scriptContent.includes('currentUserSession.access_token'), 'Gateway call must pass user access token');
+  assert(scriptContent.includes("DEFAULT_GEMINI_API_KEY = ''"), 'Client API key must remain safe and unexposed');
+  assert(scriptContent.includes("BACKUP_GEMINI_API_KEY = ''"), 'Backup client API key must remain safe and unexposed');
+});
+
 console.log('\n----------------------------------------------------');
 console.log(`  Tests: ${passedTests} passed, ${totalTests} total`);
 console.log('----------------------------------------------------\n');

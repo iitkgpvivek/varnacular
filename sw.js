@@ -1,10 +1,11 @@
-const APP_VERSION = '4.0.1';
+const APP_VERSION = '4.1.0';
 const CACHE = `rasari-hindi-v${APP_VERSION}`;
 const ASSETS = [
   './',
   './index.html',
   './review.html',
   './review2.html',
+  './js/supabase.js',
   './images/jungle_landscape.png',
   './images/frame_corner_tr.png',
   './images/frame_corner_tl.png',

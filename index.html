@@ -204,6 +204,23 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 .hub-resume-btn:hover{filter:brightness(1.08) !important;box-shadow:0 6px 14px rgba(16,185,129,0.4) !important}
 .hub-resume-btn:active{transform:scale(0.97) !important}
 
+/* Parent Hub Account & Cloud Sync */
+.hub-account-card{background:#ffffff !important;border:1.5px solid #e2e8f0 !important;border-radius:14px !important;padding:10px 12px !important;display:flex !important;flex-direction:column !important;gap:8px !important}
+.hub-account-prompt{font-size:11px !important;color:#475569 !important;line-height:1.35 !important;font-weight:600 !important}
+.hub-google-signin-btn{display:flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;background:#ffffff !important;border:1.5px solid #cbd5e1 !important;border-radius:10px !important;padding:7px 12px !important;font-size:12.5px !important;font-weight:700 !important;color:#1e293b !important;box-shadow:0 1px 3px rgba(0,0,0,0.06) !important;cursor:pointer !important;transition:all 0.15s ease !important}
+.hub-google-signin-btn:hover{background:#f1f5f9 !important;border-color:#94a3b8 !important}
+.hub-google-signin-btn:active{transform:scale(0.98) !important}
+.hub-user-info-row{display:flex !important;align-items:center !important;gap:10px !important;width:100% !important}
+.hub-user-avatar{width:32px !important;height:32px !important;border-radius:50% !important;object-fit:cover !important;border:1.5px solid #cbd5e1 !important}
+.hub-user-meta{display:flex !important;flex-direction:column !important;flex:1 !important;min-width:0 !important}
+.hub-user-name{font-size:12px !important;font-weight:800 !important;color:#0f172a !important;line-height:1.2 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important}
+.hub-user-email{font-size:10px !important;color:#64748b !important;line-height:1.2 !important;white-space:nowrap !important;overflow:hidden !important;text-overflow:ellipsis !important}
+.hub-signout-btn{font-size:10.5px !important;font-weight:700 !important;color:#b91c1c !important;background:#fee2e2 !important;border:1px solid #fca5a5 !important;border-radius:8px !important;padding:4px 8px !important;cursor:pointer !important;transition:all 0.15s ease !important}
+.hub-signout-btn:hover{background:#fecaca !important}
+.hub-sync-status-row{display:flex !important;align-items:center !important;justify-content:space-between !important;padding-top:4px !important;border-top:1px dashed #e2e8f0 !important;font-size:10px !important}
+.hub-sync-badge{color:#15803d !important;font-weight:700 !important;display:inline-flex !important;align-items:center !important;gap:4px !important}
+.hub-quota-badge{color:#b45309 !important;font-weight:700 !important;background:#fef3c7 !important;padding:1px 6px !important;border-radius:6px !important}
+
 /* LAYER 3: Native App Interactive Interface (Scrollable Bottom Anchored) */
 .app-container-layer{position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;overflow-y:auto !important;overflow-x:hidden !important;-webkit-overflow-scrolling:touch !important;scrollbar-width:thin;scrollbar-color:rgba(18,65,112,0.3) transparent;scroll-snap-type:y proximity;pointer-events:none !important;z-index:30 !important;padding:8px 16px 0 16px;padding-top:clamp(48px,7.5vh,60px) !important;display:flex !important;flex-direction:column !important;justify-content:flex-end !important;box-sizing:border-box !important}
 .app-container-layer > *{pointer-events:auto !important}
@@ -1125,6 +1142,39 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
     </div>
 
     <div class="hub-body">
+      <!-- Section 0: Parent Account & Cloud Sync -->
+      <div class="hub-section" id="hubAccountSection">
+        <div class="hub-section-label">☁️ Parent Account &amp; Sync</div>
+        <div class="hub-account-card" id="hubAccountLoggedOut">
+          <div class="hub-account-prompt">
+            <span class="hub-account-desc">Sign in with Google to sync stars across devices &amp; unlock AI evaluation.</span>
+          </div>
+          <button type="button" class="hub-google-signin-btn" id="googleSignInBtn">
+            <svg class="google-icon-svg" viewBox="0 0 24 24" width="18" height="18" style="flex-shrink:0;">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+            </svg>
+            <span>Sign in with Google</span>
+          </button>
+        </div>
+        <div class="hub-account-card" id="hubAccountLoggedIn" style="display:none;">
+          <div class="hub-user-info-row">
+            <img id="hubUserAvatar" class="hub-user-avatar" src="images/brand/logo_mark.png" alt="User avatar" />
+            <div class="hub-user-meta">
+              <span class="hub-user-name" id="hubUserName">Parent</span>
+              <span class="hub-user-email" id="hubUserEmail">parent@example.com</span>
+            </div>
+            <button type="button" class="hub-signout-btn" id="googleSignOutBtn" title="Sign out">Sign out</button>
+          </div>
+          <div class="hub-sync-status-row">
+            <span class="hub-sync-badge" id="hubSyncBadge">🟢 Cloud Synced</span>
+            <span class="hub-quota-badge">⚡ AI Active</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Section 1: Practice Mode (Learn vs Test) -->
       <div class="hub-section">
         <div class="hub-section-label">🎯 Practice Mode</div>
@@ -1376,6 +1426,7 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 </aside>
 </main>
 
+<script src="./js/supabase.js"></script>
 <script>
 
 // Curriculum: 13 Swars + 36 Vyanjans with Grade 1 Matras
@@ -5871,6 +5922,222 @@ const w = $('write'), ctx = w.getContext('2d');
 
 $('bananaCount').textContent = bananas;
 
+// Rasari Cloud & Auth State (Unified with Mathemagic)
+const SUPABASE_URL = 'https://lqllutoeidiwfxdkuezd.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGx1dG9laWRpd2Z4ZGt1ZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNzEzODAsImV4cCI6MjA2MTY0NzM4MH0.iht5HAQ6E-n03o3xN7C4hZ64J2Ea7v2bA66I4c6kXnE';
+let supabaseClient = null;
+let currentUserSession = null;
+let syncInProgress = false;
+
+function getDeviceId() {
+  let id = localStorage.getItem('rasari_device_id');
+  if (!id) {
+    id = 'dev_' + Math.random().toString(36).substring(2, 12) + '_' + Date.now();
+    try { localStorage.setItem('rasari_device_id', id); } catch (e) {}
+  }
+  return id;
+}
+
+function initSupabaseAuth() {
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    console.warn('[Supabase] Library not available offline');
+    return;
+  }
+  try {
+    supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      }
+    });
+
+    supabaseClient.auth.getSession().then(({ data, error }) => {
+      if (data && data.session) {
+        currentUserSession = data.session;
+        updateAuthUI();
+        syncProgressFromCloud();
+      } else {
+        updateAuthUI();
+      }
+    }).catch(err => {
+      console.warn('[Supabase] getSession error:', err);
+      updateAuthUI();
+    });
+
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      currentUserSession = session || null;
+      updateAuthUI();
+      if (event === 'SIGNED_IN' && session) {
+        syncProgressFromCloud();
+        logAnalyticsEvent('parent_signed_in', { email: session.user?.email });
+      } else if (event === 'SIGNED_OUT') {
+        logAnalyticsEvent('parent_signed_out', {});
+      }
+    });
+  } catch (err) {
+    console.warn('[Supabase] Init exception:', err);
+  }
+}
+
+async function signInWithGoogle() {
+  if (!supabaseClient) {
+    initSupabaseAuth();
+  }
+  if (!supabaseClient) {
+    alert('Please check your internet connection to sign in.');
+    return;
+  }
+  try {
+    const redirectUrl = window.location.origin + window.location.pathname;
+    const { error } = await supabaseClient.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        queryParams: {
+          prompt: 'select_account'
+        }
+      }
+    });
+    if (error) {
+      alert('Sign-in failed: ' + error.message);
+    }
+  } catch (err) {
+    console.error('[Supabase Auth] Sign-in error:', err);
+  }
+}
+
+async function signOutUser() {
+  if (!supabaseClient) return;
+  try {
+    await supabaseClient.auth.signOut();
+    currentUserSession = null;
+    updateAuthUI();
+  } catch (err) {
+    console.error('[Supabase Auth] Sign-out error:', err);
+  }
+}
+
+function updateAuthUI() {
+  const outCard = $('hubAccountLoggedOut');
+  const inCard = $('hubAccountLoggedIn');
+  if (!outCard || !inCard) return;
+
+  if (currentUserSession && currentUserSession.user) {
+    outCard.style.display = 'none';
+    inCard.style.display = 'flex';
+    const user = currentUserSession.user;
+    const meta = user.user_metadata || {};
+    if ($('hubUserName')) $('hubUserName').textContent = meta.full_name || meta.name || user.email?.split('@')[0] || 'Parent';
+    if ($('hubUserEmail')) $('hubUserEmail').textContent = user.email || '';
+    if ($('hubUserAvatar')) {
+      $('hubUserAvatar').src = meta.avatar_url || meta.picture || 'images/brand/logo_mark.png';
+    }
+  } else {
+    outCard.style.display = 'flex';
+    inCard.style.display = 'none';
+  }
+}
+
+async function syncProgressToCloud() {
+  if (!supabaseClient || !currentUserSession || !currentUserSession.user || syncInProgress) return;
+  try {
+    syncInProgress = true;
+    const user_id = currentUserSession.user.id;
+    const payload = {
+      user_id: user_id,
+      stars: masteryData,
+      bananas: bananas,
+      language: currentLanguage,
+      device_id: getDeviceId(),
+      updated_at: new Date().toISOString()
+    };
+    const { error } = await supabaseClient
+      .schema('varnacular')
+      .from('user_progress')
+      .upsert(payload, { onConflict: 'user_id' });
+    if (error) {
+      console.warn('[Cloud Sync] Upload error:', error);
+    } else {
+      if ($('hubSyncBadge')) $('hubSyncBadge').textContent = '🟢 Cloud Synced';
+    }
+  } catch (e) {
+    console.warn('[Cloud Sync] Upsert exception:', e);
+  } finally {
+    syncInProgress = false;
+  }
+}
+
+async function syncProgressFromCloud() {
+  if (!supabaseClient || !currentUserSession || !currentUserSession.user) return;
+  try {
+    const user_id = currentUserSession.user.id;
+    const { data, error } = await supabaseClient
+      .schema('varnacular')
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', user_id)
+      .maybeSingle();
+
+    if (error) {
+      console.warn('[Cloud Sync] Download error:', error);
+      return;
+    }
+    if (data) {
+      let changed = false;
+      if (data.stars && typeof data.stars === 'object') {
+        for (const [k, v] of Object.entries(data.stars)) {
+          if (!masteryData[k]) {
+            masteryData[k] = v;
+            changed = true;
+          } else {
+            if ((v.star || 0) > (masteryData[k].star || 0)) {
+              masteryData[k] = { ...masteryData[k], ...v };
+              changed = true;
+            }
+          }
+        }
+      }
+      if (typeof data.bananas === 'number' && data.bananas > bananas) {
+        bananas = data.bananas;
+        $('bananaCount').textContent = bananas;
+        localStorage.setItem('rasari_bananas', bananas);
+        changed = true;
+      }
+      if (changed) {
+        localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
+        if (typeof updateStats === 'function') updateStats();
+        if (typeof renderStickerBook === 'function') renderStickerBook();
+      }
+      if ($('hubSyncBadge')) $('hubSyncBadge').textContent = '🟢 Cloud Synced';
+    } else {
+      syncProgressToCloud();
+    }
+  } catch (e) {
+    console.warn('[Cloud Sync] Download exception:', e);
+  }
+}
+
+async function logAnalyticsEvent(eventName, metadata = {}) {
+  if (!supabaseClient) return;
+  try {
+    const user_id = currentUserSession?.user?.id || null;
+    const payload = {
+      user_id: user_id,
+      device_id: getDeviceId(),
+      event_name: eventName,
+      language: currentLanguage,
+      metadata: metadata
+    };
+    await supabaseClient
+      .schema('varnacular')
+      .from('analytics_events')
+      .insert([payload]);
+  } catch (e) {
+    // Non-blocking telemetry
+  }
+}
+
 function getLetterMastery(c) {
   if (!masteryData[c]) {
     masteryData[c] = {
@@ -5943,6 +6210,7 @@ function updateLetterStar(c) {
   }
 
   localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
+  if (typeof syncProgressToCloud === 'function') syncProgressToCloud();
   return m.star;
 }
 
@@ -8475,10 +8743,6 @@ async function evaluateWithGeminiVision(capturedDataUrl, targetText) {
 
   const primaryKey = getGeminiApiKey();
   const apiKeys = [primaryKey, BACKUP_GEMINI_API_KEY].filter((k, idx, arr) => k && arr.indexOf(k) === idx);
-  if (!apiKeys.length) {
-    window.lastGeminiFailureReason = 'No API Key';
-    return null;
-  }
 
   try {
     const commaIdx = capturedDataUrl.indexOf(',');
@@ -8569,37 +8833,81 @@ Respond ONLY with a JSON object:
     // Ultra-fast Flash-Lite models followed by flagship Flash 3.8 fallback
     const FAST_MODELS = ['gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'];
 
-    for (const key of apiKeys) {
-      for (const model of FAST_MODELS) {
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 12000);
+    // 1. Priority: Secure Supabase Edge Function Gateway (Authenticated Parent AI Gateway)
+    if (currentUserSession && currentUserSession.access_token) {
+      try {
+        const gwController = new AbortController();
+        const gwTimeoutId = setTimeout(() => gwController.abort(), 12000);
 
-          const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
+        const gwPayload = {
+          provider: 'gemini',
+          model: 'gemini-flash-lite-latest',
+          contents: payload.contents,
+          generationConfig: payload.generationConfig
+        };
 
-          if (res.ok) {
-            response = res;
-            chosenModel = model;
-            break;
-          } else {
-            lastErrorReason = (res.status === 429) ? 'Quota Limit (429)' : `HTTP ${res.status}`;
-            console.warn(`[Gemini Vision] Model ${model} returned ${res.status}, trying fallback...`);
-          }
-        } catch (err) {
-          lastErrorReason = (err && err.name === 'AbortError') ? 'Timeout (>12s)' : 'Network Error';
-          console.warn(`[Gemini Vision] Model ${model} timeout or error, trying fallback...`, err);
+        const gwRes = await fetch('https://lqllutoeidiwfxdkuezd.supabase.co/functions/v1/rasari-ai-gateway', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + currentUserSession.access_token
+          },
+          body: JSON.stringify(gwPayload),
+          signal: gwController.signal
+        });
+        clearTimeout(gwTimeoutId);
+
+        if (gwRes.ok) {
+          response = gwRes;
+          chosenModel = 'gemini-flash-lite-latest (Edge Gateway)';
+        } else {
+          lastErrorReason = (gwRes.status === 429) ? 'Daily AI Quota Reached (250/day)' : `Gateway HTTP ${gwRes.status}`;
+          console.warn('[AI Gateway] Status:', gwRes.status, 'falling back to direct/local...');
         }
+      } catch (gwErr) {
+        lastErrorReason = (gwErr && gwErr.name === 'AbortError') ? 'Timeout (>12s)' : 'Gateway Error';
+        console.warn('[AI Gateway] Exception:', gwErr);
       }
-      if (response) break;
+    }
+
+    // 2. Direct API Key fallback (if custom developer key provided in localStorage)
+    if (!response && apiKeys.length > 0) {
+      for (const key of apiKeys) {
+        for (const model of FAST_MODELS) {
+          try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 12000);
+
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload),
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (res.ok) {
+              response = res;
+              chosenModel = model;
+              break;
+            } else {
+              lastErrorReason = (res.status === 429) ? 'Quota Limit (429)' : `HTTP ${res.status}`;
+              console.warn(`[Gemini Vision] Model ${model} returned ${res.status}, trying fallback...`);
+            }
+          } catch (err) {
+            lastErrorReason = (err && err.name === 'AbortError') ? 'Timeout (>12s)' : 'Network Error';
+            console.warn(`[Gemini Vision] Model ${model} timeout or error, trying fallback...`, err);
+          }
+        }
+        if (response) break;
+      }
     }
 
     if (!response) {
+      if (!apiKeys.length && !currentUserSession) {
+        lastErrorReason = 'Sign In Required for AI';
+      }
       window.lastGeminiFailureReason = lastErrorReason;
       console.warn('[Gemini Vision] Free models fallback reason:', lastErrorReason);
       return null;
@@ -9259,6 +9567,7 @@ $('done').onclick = e => {
   bananas += treatsEarned;
   localStorage.setItem('rasari_bananas', bananas);
   $('bananaCount').textContent = bananas;
+  if (typeof syncProgressToCloud === 'function') syncProgressToCloud();
 
   const scoreCard = $('scoreBadge');
   if (scoreCard) {
@@ -10096,6 +10405,7 @@ function updateHubUI() {
 
 function openLearningHub() {
   updateHubUI();
+  updateAuthUI();
   if ($('learningHubModal')) $('learningHubModal').classList.add('show');
 }
 
@@ -10104,6 +10414,18 @@ function closeLearningHub() {
 }
 
 function initLearningHub() {
+  if ($('googleSignInBtn')) {
+    $('googleSignInBtn').addEventListener('click', () => {
+      signInWithGoogle();
+    });
+  }
+
+  if ($('googleSignOutBtn')) {
+    $('googleSignOutBtn').addEventListener('click', () => {
+      signOutUser();
+    });
+  }
+
   if ($('modeLearnBtn')) {
     $('modeLearnBtn').addEventListener('click', () => {
       practiceMode = 'learn';
@@ -11314,7 +11636,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.0.1';
+const CURRENT_APP_VERSION = '4.1.0';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
@@ -11348,6 +11670,7 @@ try {
 } catch (_) {}
 initLetterAvatarPuck();
 initLearningHub();
+initSupabaseAuth();
 setLetter(idx || 0);
 
 </script>
