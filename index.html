@@ -5952,12 +5952,19 @@ let currentAksharas = [];
 let currentAksharaIndex = 0;
 let aksharaStrokesMap = [];
 
+const $ = id => document.getElementById(id) || (id === 'erase' ? document.getElementById('clearBtn') : null) || (id === 'clearBtn' ? document.getElementById('erase') : null);
+const w = $('write'), ctx = w.getContext('2d');
+
 let guideMode = 'auto'; // 'auto', 'on', 'off'
 let hintActive = false;
 let hintTimer = null;
 
+let currentStudentsList = [];
+let activeChildProfile = null;
+let selectedGradeForNewChild = 1;
+
 function getStudentStoragePrefix() {
-  if (typeof activeChildProfile !== 'undefined' && activeChildProfile && activeChildProfile.id) {
+  if (activeChildProfile && activeChildProfile.id) {
     return 'rasari_' + activeChildProfile.id + '_';
   }
   const savedId = localStorage.getItem('rasari_active_student_id');
@@ -6005,8 +6012,10 @@ function loadActiveChildLocalProgress() {
     }
   }
 
-  if ($('bananaCount')) $('bananaCount').textContent = bananas;
-  if ($('treatCount')) $('treatCount').textContent = bananas;
+  const bEl = $('bananaCount');
+  if (bEl) bEl.textContent = bananas;
+  const tEl = $('treatCount');
+  if (tEl) tEl.textContent = bananas;
 }
 
 function saveActiveChildLocalProgress() {
@@ -6020,11 +6029,6 @@ function saveActiveChildLocalProgress() {
 }
 
 loadActiveChildLocalProgress();
-
-const $ = id => document.getElementById(id) || (id === 'erase' ? document.getElementById('clearBtn') : null) || (id === 'clearBtn' ? document.getElementById('erase') : null);
-const w = $('write'), ctx = w.getContext('2d');
-
-$('bananaCount').textContent = bananas;
 
 // Rasari Cloud & Auth State (Unified with Mathemagic)
 const SUPABASE_URL = 'https://lqllutoeidiwfxdkuezd.supabase.co';
@@ -6188,10 +6192,6 @@ function updateAuthUI() {
     activeChildProfile = null;
   }
 }
-
-let currentStudentsList = [];
-let activeChildProfile = null;
-let selectedGradeForNewChild = 1;
 
 async function loadCentralStudentProfiles(userId) {
   if (!supabaseClient || !userId) return;
@@ -12187,7 +12187,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.2.2';
+const CURRENT_APP_VERSION = '4.2.3';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
