@@ -1140,6 +1140,7 @@ test('Central Rasari House: Child Profile Roster integration', () => {
   assert(html.includes('id="hubChildPillsList"'), 'Must contain hubChildPillsList');
   assert(html.includes('loadCentralStudentProfiles'), 'Must include loadCentralStudentProfiles function');
   assert(html.includes("from('students')"), 'Must query central students table');
+  assert(html.includes('handleRemoveChild'), 'Must include handleRemoveChild function for removing profiles');
 });
 
 console.log('\n----------------------------------------------------');

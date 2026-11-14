@@ -6176,21 +6176,31 @@ function renderChildPillsUI() {
 
   currentStudentsList.forEach(child => {
     const isActive = activeChildProfile && activeChildProfile.id === child.id;
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.style.cssText = `
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
+    const pill = document.createElement('div');
+    pill.style.cssText = `
       display: inline-flex;
       align-items: center;
-      gap: 4px;
+      border-radius: 12px;
+      overflow: hidden;
       transition: all 0.15s ease;
       border: 1px solid ${isActive ? '#0284c7' : '#cbd5e1'};
       background: ${isActive ? '#0284c7' : '#f8fafc'};
       color: ${isActive ? '#ffffff' : '#334155'};
+    `;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = `
+      padding: 4px 6px 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
     `;
     const gradeLabel = child.current_grade === 0 ? 'KG' : `Gr. ${child.current_grade || 1}`;
     btn.innerHTML = `👶 ${child.name} <span style="font-size:9px; opacity:0.85;">(${gradeLabel})</span>`;
@@ -6203,8 +6213,86 @@ function renderChildPillsUI() {
       renderChildPillsUI();
       syncProgressFromCloud();
     });
-    listEl.appendChild(btn);
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.title = `Remove ${child.name}`;
+    removeBtn.setAttribute('aria-label', `Remove ${child.name}`);
+    removeBtn.style.cssText = `
+      padding: 4px 8px 4px 4px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: inherit;
+      opacity: 0.65;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s ease, color 0.15s ease;
+    `;
+    removeBtn.innerHTML = `&times;`;
+    removeBtn.addEventListener('mouseenter', () => {
+      removeBtn.style.opacity = '1';
+      if (!isActive) removeBtn.style.color = '#ef4444';
+    });
+    removeBtn.addEventListener('mouseleave', () => {
+      removeBtn.style.opacity = '0.65';
+      if (!isActive) removeBtn.style.color = '#334155';
+    });
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleRemoveChild(child);
+    });
+
+    pill.appendChild(btn);
+    pill.appendChild(removeBtn);
+    listEl.appendChild(pill);
   });
+}
+
+async function handleRemoveChild(child) {
+  if (!child || !child.id) return;
+  const confirmed = confirm(`Are you sure you want to remove "${child.name}" from Varnacular?\n\nThis will remove their profile from your Varnacular child list.`);
+  if (!confirmed) return;
+
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from('students')
+        .delete()
+        .eq('id', child.id);
+
+      if (error) {
+        alert('Could not remove child: ' + (error.message || 'Database error'));
+        return;
+      }
+    }
+
+    currentStudentsList = currentStudentsList.filter(c => c.id !== child.id);
+
+    if (activeChildProfile && activeChildProfile.id === child.id) {
+      if (currentStudentsList.length > 0) {
+        activeChildProfile = currentStudentsList[0];
+        try {
+          localStorage.setItem('rasari_active_student_id', activeChildProfile.id);
+          localStorage.setItem('rasari_active_student_name', activeChildProfile.name);
+        } catch (_) {}
+      } else {
+        activeChildProfile = null;
+        try {
+          localStorage.removeItem('rasari_active_student_id');
+          localStorage.removeItem('rasari_active_student_name');
+        } catch (_) {}
+      }
+    }
+
+    renderChildPillsUI();
+  } catch (err) {
+    alert('Failed to remove child: ' + (err?.message || 'Network error'));
+  }
 }
 
 function openAddChildModal() {
@@ -12011,7 +12099,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.2.0';
+const CURRENT_APP_VERSION = '4.2.1';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
