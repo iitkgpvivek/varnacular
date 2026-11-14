@@ -251,7 +251,7 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 /* Canvas Container */
 .canvas-slate-container{position:relative !important;width:100% !important;flex:1 1 0% !important;min-height:0 !important;margin:4px 0 !important;overflow:hidden !important}
 #write{position:absolute !important;inset:0 !important;width:100% !important;height:100% !important;touch-action:none !important;cursor:crosshair !important;z-index:15 !important}
-.canvas-prompt-container{text-align:center;font-size:clamp(9px,1.1vw,11px);color:rgba(120,53,15,0.7);font-weight:800;flex-shrink:0;z-index:20;user-select:none;-webkit-user-select:none;margin-top:2px}
+.canvas-prompt-container{display:none !important}
 .android-safe-zone{height:36px !important;min-height:36px !important;width:100%;display:flex;align-items:center;justify-content:center;flex-shrink:0;z-index:30;margin-bottom:4px;padding-bottom:env(safe-area-inset-bottom,4px)}
 .safe-zone-pill{font-size:clamp(9px,1.1vw,11px) !important;color:#334155 !important;font-weight:700 !important;display:flex !important;align-items:center !important;gap:4px !important;background:rgba(255,255,255,0.85) !important;backdrop-filter:blur(4px) !important;-webkit-backdrop-filter:blur(4px) !important;padding:4px 12px !important;border-radius:9999px !important;border:1px solid rgba(226,232,240,0.8) !important;box-shadow:0 1px 2px rgba(0,0,0,0.05) !important}
 
@@ -553,9 +553,11 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 .step.disabled{opacity:0.35;pointer-events:none;filter:grayscale(1)}
 
 
-.update-toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(160%);background:#0d2847;color:#ffffff;padding:8px 16px;border-radius:999px;box-shadow:0 10px 28px rgba(0,0,0,0.35);display:flex;align-items:center;gap:12px;font-size:clamp(12px,1.4vw,15px);font-weight:700;z-index:10000;transition:transform .35s cubic-bezier(.175,.885,.32,1.275);border:2px solid #ffca4f;pointer-events:none;opacity:0}
-.update-toast.show{transform:translateX(-50%) translateY(0);pointer-events:auto;opacity:1}
-.update-toast button{background:#39b84a;color:white;border:none;border-radius:999px;padding:6px 14px;font-size:clamp(12px,1.3vw,14px);font-weight:800;cursor:pointer;box-shadow:0 2px 0 #1e6e28}
+.update-toast{position:fixed !important;top:50% !important;left:50% !important;bottom:auto !important;transform:translate(-50%,-50%) scale(0.9) !important;background:#0d2847 !important;color:#ffffff !important;padding:20px 28px !important;border-radius:20px !important;box-shadow:0 20px 50px rgba(0,0,0,0.5) !important;display:flex !important;flex-direction:column !important;align-items:center !important;gap:12px !important;font-size:15px !important;font-weight:700 !important;z-index:100000 !important;border:2.5px solid #ffca4f !important;pointer-events:none !important;opacity:0 !important;transition:all .25s cubic-bezier(.175,.885,.32,1.275) !important;text-align:center !important;max-width:90vw !important;width:320px !important}
+.update-toast.show{transform:translate(-50%,-50%) scale(1) !important;pointer-events:auto !important;opacity:1 !important}
+.update-toast-btns{display:flex !important;align-items:center !important;justify-content:center !important;gap:10px !important;margin-top:6px !important;width:100% !important}
+.update-toast-btn-primary{background:#39b84a !important;color:white !important;border:none !important;border-radius:999px !important;padding:8px 18px !important;font-size:13.5px !important;font-weight:800 !important;cursor:pointer !important;box-shadow:0 2px 0 #1e6e28 !important}
+.update-toast-btn-dismiss{background:rgba(255,255,255,0.15) !important;color:#e2e8f0 !important;border:1px solid rgba(255,255,255,0.25) !important;border-radius:999px !important;padding:8px 16px !important;font-size:13px !important;font-weight:700 !important;cursor:pointer !important}
 
 /* Progress Sticker Book Modal & Animations */
 @keyframes canvasShake {
@@ -1040,11 +1042,6 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
             <div class="canvas-slate-container" id="canvasRulingContainer">
               <canvas id="write" aria-label="Writing canvas"></canvas>
             </div>
-
-            <!-- Bottom Slate Footnote / Palm Shield Zone -->
-            <div class="canvas-prompt-container" id="promptText">
-              🖐️ Palm Shield Protected
-            </div>
           </div>
         </div>
       </div>
@@ -1415,8 +1412,16 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 </div>
 
 <aside id="update-toast" class="update-toast" role="status" aria-live="polite">
-  <span>✨ New version available!</span>
-  <button id="update-btn">Update Now ↻</button>
+  <div style="font-size:17px; font-weight:800; color:#ffca4f; display:flex; align-items:center; gap:8px;">
+    <span>✨</span> App Update Ready
+  </div>
+  <div style="font-size:12.5px; color:#cbd5e1; font-weight:600; line-height:1.4;">
+    A fresh version is available with new fixes.
+  </div>
+  <div class="update-toast-btns">
+    <button id="update-btn" class="update-toast-btn-primary">Update Now ↻</button>
+    <button id="update-dismiss-btn" type="button" class="update-toast-btn-dismiss">Later</button>
+  </div>
 </aside>
 </main>
 
@@ -10190,12 +10195,6 @@ if ($('charGlyph')) {
   $('charGlyph').onclick = speakLetter;
   makeTouchResponsive($('charGlyph'));
 }
-if ($('promptText')) {
-  $('promptText').style.cursor = 'pointer';
-  $('promptText').style.pointerEvents = 'auto';
-  $('promptText').onclick = speakLetter;
-  makeTouchResponsive($('promptText'));
-}
 $('clueBoard').onclick = speakClue;
 makeTouchResponsive($('clueBoard'));
 $('clueEmoji').onclick = speakClue;
@@ -11477,7 +11476,7 @@ function render() {
     // Stage 1: Letter Recall
     const tierName = m.letterTier === 0 ? 'Trace' : (m.letterTier === 1 ? 'Ghost' : 'Freehand');
     const tierRatio = (m.letterTier + 1) + '/3';
-    $('promptText').textContent = practiceMode === 'test' ? "Listen & Write Freehand ✍️" : ("Write letter " + item.c);
+    if ($('promptText')) $('promptText').textContent = practiceMode === 'test' ? "Listen & Write Freehand ✍️" : ("Write letter " + item.c);
     if (badge) {
       if (practiceMode === 'test') {
         if (m.letterTestPassed) {
@@ -11501,7 +11500,7 @@ function render() {
     const combo = getMatraCombo(item.c, matraObj.sym);
     const tierName = m.matraTier === 0 ? 'Trace' : (m.matraTier === 1 ? 'Ghost' : 'Freehand');
     const tierRatio = (m.matraTier + 1) + '/3';
-    $('promptText').textContent = practiceMode === 'test' ? "Listen & Write Matra ✍️" : ("Write " + combo + " (" + matraObj.name + ")");
+    if ($('promptText')) $('promptText').textContent = practiceMode === 'test' ? "Listen & Write Matra ✍️" : ("Write " + combo + " (" + matraObj.name + ")");
     if (badge) {
       if (practiceMode === 'test') {
         if (m.matraTestMastered) {
@@ -11522,7 +11521,7 @@ function render() {
   } else if (currentStep === 3) {
     // Stage 3: Word Recall
     const tierName = m.wordTier === 0 ? 'Trace' : (m.wordTier === 1 ? 'Ghost' : 'Freehand');
-    $('promptText').textContent = practiceMode === 'test' ? "Listen & Write Word ✍️" : "Write the word ✍️";
+    if ($('promptText')) $('promptText').textContent = practiceMode === 'test' ? "Listen & Write Word ✍️" : "Write the word ✍️";
     const count = (m.wordsMastered && m.wordsMastered.length) || 0;
     if (badge) {
       if (practiceMode === 'test') {
@@ -11737,6 +11736,12 @@ function setupPWAUpdate() {
           btn.textContent = 'Updating...';
           worker.postMessage({ type: 'SKIP_WAITING' });
         };
+        const dismissBtn = $('update-dismiss-btn');
+        if (dismissBtn) {
+          dismissBtn.onclick = () => {
+            toast.classList.remove('show');
+          };
+        }
       }
 
       if (reg.waiting) promptUpdate(reg.waiting);
@@ -11758,7 +11763,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.6';
+const CURRENT_APP_VERSION = '4.1.7';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
