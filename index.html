@@ -1250,8 +1250,41 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
         ✍️ Continue Writing
       </button>
       <div style="text-align:center; margin-top:12px; padding-top:8px; border-top:1px solid #f1f5f9;">
-        <span id="appVersionBadge" style="font-size:11px; color:#64748b; font-family:ui-monospace,SFMono-Regular,monospace; font-weight:600; cursor:pointer;" title="Tap to check for updates">Varnacular v4.1.6</span>
+        <span id="appVersionBadge" style="font-size:11px; color:#64748b; font-family:ui-monospace,SFMono-Regular,monospace; font-weight:600; cursor:pointer;" title="Tap to check for updates">Varnacular v4.2.0</span>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CHILD PROFILE MODAL (with Grade Selection) -->
+<div class="modal" id="addChildModal" aria-label="Add Child Profile">
+  <div class="dialog" style="max-width:380px; width:90%; padding:20px; border-radius:18px; background:#ffffff; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:22px;">👶</span>
+        <h3 style="margin:0; font-size:18px; color:#0f172a;">Add Child Profile</h3>
+      </div>
+      <button type="button" class="sticker-close" id="closeAddChildModalBtn" aria-label="Close" style="background:none; border:none; font-size:18px; color:#64748b; cursor:pointer;">✕</button>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Child's Name</label>
+      <input type="text" id="newChildNameInput" placeholder="e.g. Kashvi" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px; outline:none;" />
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Select Grade for Varnacular</label>
+      <div id="newChildGradeSelector" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+        <button type="button" class="child-grade-btn" data-grade="0" style="padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">LKG</button>
+        <button type="button" class="child-grade-btn" data-grade="0" style="padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">UKG</button>
+        <button type="button" class="child-grade-btn active-grade" data-grade="1" style="padding:8px 10px; border-radius:10px; border:1px solid #0284c7; background:#0284c7; color:#ffffff; font-size:12px; font-weight:700; cursor:pointer;">Grade 1 (Default)</button>
+        <button type="button" class="child-grade-btn" data-grade="2" style="padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">Grade 2</button>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" id="cancelAddChildBtn" style="padding:8px 14px; border-radius:10px; border:1px solid #e2e8f0; background:#f8fafc; color:#64748b; font-size:13px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button type="button" id="confirmSaveChildBtn" style="padding:8px 18px; border-radius:10px; border:none; background:#0f766e; color:#ffffff; font-size:13px; font-weight:700; cursor:pointer;">Save Child</button>
     </div>
   </div>
 </div>
@@ -6096,14 +6129,16 @@ function updateAuthUI() {
 
 let currentStudentsList = [];
 let activeChildProfile = null;
+let selectedGradeForNewChild = 1;
 
 async function loadCentralStudentProfiles(userId) {
   if (!supabaseClient || !userId) return;
   try {
     const { data, error } = await supabaseClient
       .from('students')
-      .select('id, name, current_grade, is_paid, plan_type')
+      .select('id, name, current_grade, is_paid, plan_type, app')
       .eq('parent_id', userId)
+      .eq('app', 'varnacular')
       .order('created_at', { ascending: true });
 
     if (!error && Array.isArray(data)) {
@@ -6157,7 +6192,8 @@ function renderChildPillsUI() {
       background: ${isActive ? '#0284c7' : '#f8fafc'};
       color: ${isActive ? '#ffffff' : '#334155'};
     `;
-    btn.innerHTML = `👶 ${child.name} <span style="font-size:9px; opacity:0.85;">(Gr. ${child.current_grade || 1})</span>`;
+    const gradeLabel = child.current_grade === 0 ? 'KG' : `Gr. ${child.current_grade || 1}`;
+    btn.innerHTML = `👶 ${child.name} <span style="font-size:9px; opacity:0.85;">(${gradeLabel})</span>`;
     btn.addEventListener('click', () => {
       activeChildProfile = child;
       try {
@@ -6171,16 +6207,54 @@ function renderChildPillsUI() {
   });
 }
 
-async function handleAddChildPrompt(userId) {
-  const name = prompt("Enter your child's name for Varnacular:");
-  if (!name || !name.trim()) return;
-  const trimmed = name.trim();
+function openAddChildModal() {
+  const modal = $('addChildModal');
+  if (!modal) return;
+  const input = $('newChildNameInput');
+  if (input) input.value = '';
+  selectedGradeForNewChild = 1;
+  updateGradeSelectorUI();
+  modal.style.display = 'flex';
+}
+
+function closeAddChildModal() {
+  const modal = $('addChildModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateGradeSelectorUI() {
+  const selector = $('newChildGradeSelector');
+  if (!selector) return;
+  const buttons = selector.querySelectorAll('.child-grade-btn');
+  buttons.forEach(btn => {
+    const g = parseInt(btn.getAttribute('data-grade'), 10);
+    const isSel = (g === selectedGradeForNewChild);
+    btn.style.border = isSel ? '1px solid #0284c7' : '1px solid #cbd5e1';
+    btn.style.background = isSel ? '#0284c7' : '#f8fafc';
+    btn.style.color = isSel ? '#ffffff' : '#334155';
+  });
+}
+
+async function handleSaveNewChild(userId) {
+  const input = $('newChildNameInput');
+  const name = input ? input.value.trim() : '';
+  if (!name) {
+    alert("Please enter your child's name.");
+    return;
+  }
+
   try {
     const { data, error } = await supabaseClient
       .from('students')
-      .insert({ parent_id: userId, name: trimmed, current_grade: 1 })
+      .insert({
+        parent_id: userId,
+        name: name,
+        current_grade: selectedGradeForNewChild,
+        app: 'varnacular'
+      })
       .select()
       .single();
+
     if (!error && data) {
       currentStudentsList.push(data);
       activeChildProfile = data;
@@ -6189,6 +6263,7 @@ async function handleAddChildPrompt(userId) {
         localStorage.setItem('rasari_active_student_name', data.name);
       } catch (_) {}
       renderChildPillsUI();
+      closeAddChildModal();
     } else {
       alert('Could not add child: ' + (error?.message || 'Database error'));
     }
@@ -10625,9 +10700,36 @@ function initLearningHub() {
   if ($('hubAddChildBtn')) {
     $('hubAddChildBtn').addEventListener('click', () => {
       if (currentUserSession && currentUserSession.user) {
-        handleAddChildPrompt(currentUserSession.user.id);
+        openAddChildModal();
       } else {
         alert('Please sign in with Google first to add child profiles.');
+      }
+    });
+  }
+
+  if ($('closeAddChildModalBtn')) {
+    $('closeAddChildModalBtn').addEventListener('click', closeAddChildModal);
+  }
+
+  if ($('cancelAddChildBtn')) {
+    $('cancelAddChildBtn').addEventListener('click', closeAddChildModal);
+  }
+
+  if ($('confirmSaveChildBtn')) {
+    $('confirmSaveChildBtn').addEventListener('click', () => {
+      if (currentUserSession && currentUserSession.user) {
+        handleSaveNewChild(currentUserSession.user.id);
+      }
+    });
+  }
+
+  const gradeSelector = $('newChildGradeSelector');
+  if (gradeSelector) {
+    gradeSelector.addEventListener('click', (e) => {
+      const btn = e.target.closest('.child-grade-btn');
+      if (btn) {
+        selectedGradeForNewChild = parseInt(btn.getAttribute('data-grade'), 10);
+        updateGradeSelectorUI();
       }
     });
   }
