@@ -6151,6 +6151,26 @@ async function syncProgressFromCloud() {
         if (typeof updateStats === 'function') updateStats();
         if (typeof renderStickerBook === 'function') renderStickerBook();
       }
+
+      // Check if local device has higher progress or additional letters not yet in cloud
+      let localHasAdvantage = false;
+      if (typeof bananas === 'number' && bananas > (data.bananas || 0)) {
+        localHasAdvantage = true;
+      }
+      const cloudStars = (data.stars && typeof data.stars === 'object') ? data.stars : {};
+      for (const [k, v] of Object.entries(masteryData)) {
+        const cloudStar = cloudStars[k]?.star || 0;
+        const localStar = v?.star || 0;
+        if (localStar > cloudStar) {
+          localHasAdvantage = true;
+          break;
+        }
+      }
+      if (localHasAdvantage) {
+        // Current device has higher progress than cloud — push the union up immediately!
+        syncProgressToCloud();
+      }
+
       if ($('hubSyncBadge')) $('hubSyncBadge').textContent = '🟢 Cloud Synced';
     } else {
       syncProgressToCloud();
@@ -11763,7 +11783,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.7';
+const CURRENT_APP_VERSION = '4.1.8';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
