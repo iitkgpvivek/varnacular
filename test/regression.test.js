@@ -1141,6 +1141,10 @@ test('Central Rasari House: Child Profile Roster integration', () => {
   assert(html.includes('loadCentralStudentProfiles'), 'Must include loadCentralStudentProfiles function');
   assert(html.includes("from('students')"), 'Must query central students table');
   assert(html.includes('handleRemoveChild'), 'Must include handleRemoveChild function for removing profiles');
+  assert(html.includes('loadActiveChildLocalProgress'), 'Must support per-child local progress loading');
+  assert(html.includes('saveActiveChildLocalProgress'), 'Must support per-child local progress saving');
+  assert(html.includes('getStudentStoragePrefix'), 'Must scope localStorage keys per student');
+  assert(html.includes('payload.student_id = student_id'), 'Must isolate cloud progress by student_id');
 });
 
 console.log('\n----------------------------------------------------');

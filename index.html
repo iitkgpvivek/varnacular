@@ -5956,8 +5956,70 @@ let guideMode = 'auto'; // 'auto', 'on', 'off'
 let hintActive = false;
 let hintTimer = null;
 
-let bananas = parseInt(localStorage.getItem('rasari_bananas') || '0', 10);
-let masteryData = JSON.parse(localStorage.getItem('rasari_mastery_v2') || '{}');
+function getStudentStoragePrefix() {
+  if (typeof activeChildProfile !== 'undefined' && activeChildProfile && activeChildProfile.id) {
+    return 'rasari_' + activeChildProfile.id + '_';
+  }
+  const savedId = localStorage.getItem('rasari_active_student_id');
+  if (savedId) return 'rasari_' + savedId + '_';
+  return 'rasari_';
+}
+
+let bananas = 0;
+let masteryData = {};
+
+function loadActiveChildLocalProgress() {
+  const prefix = getStudentStoragePrefix();
+  const savedMastery = localStorage.getItem(prefix + 'mastery_v2');
+  const savedBananas = localStorage.getItem(prefix + 'bananas');
+
+  if (savedMastery !== null) {
+    try {
+      masteryData = JSON.parse(savedMastery);
+    } catch (_) {
+      masteryData = {};
+    }
+  } else {
+    const legacyMastery = localStorage.getItem('rasari_mastery_v2');
+    if (legacyMastery) {
+      try {
+        masteryData = JSON.parse(legacyMastery);
+        localStorage.setItem(prefix + 'mastery_v2', legacyMastery);
+      } catch (_) {
+        masteryData = {};
+      }
+    } else {
+      masteryData = {};
+    }
+  }
+
+  if (savedBananas !== null) {
+    bananas = parseInt(savedBananas || '0', 10);
+  } else {
+    const legacyBananas = localStorage.getItem('rasari_bananas');
+    if (legacyBananas !== null) {
+      bananas = parseInt(legacyBananas || '0', 10);
+      localStorage.setItem(prefix + 'bananas', legacyBananas);
+    } else {
+      bananas = 0;
+    }
+  }
+
+  if ($('bananaCount')) $('bananaCount').textContent = bananas;
+  if ($('treatCount')) $('treatCount').textContent = bananas;
+}
+
+function saveActiveChildLocalProgress() {
+  const prefix = getStudentStoragePrefix();
+  try {
+    localStorage.setItem(prefix + 'mastery_v2', JSON.stringify(masteryData));
+    localStorage.setItem(prefix + 'bananas', bananas.toString());
+    localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
+    localStorage.setItem('rasari_bananas', bananas.toString());
+  } catch (_) {}
+}
+
+loadActiveChildLocalProgress();
 
 const $ = id => document.getElementById(id) || (id === 'erase' ? document.getElementById('clearBtn') : null) || (id === 'clearBtn' ? document.getElementById('erase') : null);
 const w = $('write'), ctx = w.getContext('2d');
@@ -6157,7 +6219,10 @@ async function loadCentralStudentProfiles(userId) {
       } else {
         activeChildProfile = null;
       }
+      loadActiveChildLocalProgress();
       renderChildPillsUI();
+      if (typeof render === 'function') render();
+      syncProgressFromCloud();
     }
   } catch (err) {
     console.warn('[Supabase] Failed to load student profiles:', err);
@@ -6205,12 +6270,16 @@ function renderChildPillsUI() {
     const gradeLabel = child.current_grade === 0 ? 'KG' : `Gr. ${child.current_grade || 1}`;
     btn.innerHTML = `👶 ${child.name} <span style="font-size:9px; opacity:0.85;">(${gradeLabel})</span>`;
     btn.addEventListener('click', () => {
+      if (activeChildProfile && activeChildProfile.id === child.id) return;
+      saveActiveChildLocalProgress();
       activeChildProfile = child;
       try {
         localStorage.setItem('rasari_active_student_id', child.id);
         localStorage.setItem('rasari_active_student_name', child.name);
       } catch (_) {}
+      loadActiveChildLocalProgress();
       renderChildPillsUI();
+      if (typeof render === 'function') render();
       syncProgressFromCloud();
     });
 
@@ -6287,6 +6356,8 @@ async function handleRemoveChild(child) {
           localStorage.removeItem('rasari_active_student_name');
         } catch (_) {}
       }
+      loadActiveChildLocalProgress();
+      if (typeof render === 'function') render();
     }
 
     renderChildPillsUI();
@@ -6344,14 +6415,18 @@ async function handleSaveNewChild(userId) {
       .single();
 
     if (!error && data) {
+      saveActiveChildLocalProgress();
       currentStudentsList.push(data);
       activeChildProfile = data;
       try {
         localStorage.setItem('rasari_active_student_id', data.id);
         localStorage.setItem('rasari_active_student_name', data.name);
       } catch (_) {}
+      loadActiveChildLocalProgress();
       renderChildPillsUI();
+      if (typeof render === 'function') render();
       closeAddChildModal();
+      syncProgressToCloud();
     } else {
       alert('Could not add child: ' + (error?.message || 'Database error'));
     }
@@ -6362,6 +6437,9 @@ async function handleSaveNewChild(userId) {
 
 async function syncProgressToCloud() {
   if (!supabaseClient || !currentUserSession || !currentUserSession.user || syncInProgress) return;
+  const student_id = activeChildProfile?.id || null;
+  if (currentStudentsList.length > 0 && !student_id) return;
+
   try {
     syncInProgress = true;
     const user_id = currentUserSession.user.id;
@@ -6373,10 +6451,13 @@ async function syncProgressToCloud() {
       device_id: getDeviceId(),
       updated_at: new Date().toISOString()
     };
+    if (student_id) {
+      payload.student_id = student_id;
+    }
     const { error } = await supabaseClient
       .schema('varnacular')
       .from('user_progress')
-      .upsert(payload, { onConflict: 'user_id' });
+      .upsert(payload, { onConflict: student_id ? 'user_id,student_id' : 'user_id' });
     if (error) {
       console.warn('[Cloud Sync] Upload error:', error);
     } else {
@@ -6391,14 +6472,22 @@ async function syncProgressToCloud() {
 
 async function syncProgressFromCloud() {
   if (!supabaseClient || !currentUserSession || !currentUserSession.user) return;
+  const student_id = activeChildProfile?.id || null;
+  if (currentStudentsList.length > 0 && !student_id) return;
+
   try {
     const user_id = currentUserSession.user.id;
-    const { data, error } = await supabaseClient
+    let query = supabaseClient
       .schema('varnacular')
       .from('user_progress')
       .select('*')
-      .eq('user_id', user_id)
-      .maybeSingle();
+      .eq('user_id', user_id);
+
+    if (student_id) {
+      query = query.eq('student_id', student_id);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
       console.warn('[Cloud Sync] Download error:', error);
@@ -6421,14 +6510,13 @@ async function syncProgressFromCloud() {
       }
       if (typeof data.bananas === 'number' && data.bananas > bananas) {
         bananas = data.bananas;
-        $('bananaCount').textContent = bananas;
-        localStorage.setItem('rasari_bananas', bananas);
         changed = true;
       }
       if (changed) {
-        localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
-        if (typeof updateStats === 'function') updateStats();
-        if (typeof renderStickerBook === 'function') renderStickerBook();
+        saveActiveChildLocalProgress();
+        if ($('bananaCount')) $('bananaCount').textContent = bananas;
+        if ($('treatCount')) $('treatCount').textContent = bananas;
+        if (typeof render === 'function') render();
       }
 
       // Check if local device has higher progress or additional letters not yet in cloud
@@ -6550,7 +6638,7 @@ function updateLetterStar(c) {
     m.trueMastery = true;
   }
 
-  localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
+  saveActiveChildLocalProgress();
   if (typeof syncProgressToCloud === 'function') syncProgressToCloud();
   return m.star;
 }
@@ -9930,7 +10018,7 @@ $('done').onclick = e => {
   const isFreehand = (guideMode === 'auto') ? (currentTier === 2) : (guideMode === 'off');
   let treatsEarned = isFreehand ? 3 : 1;
   bananas += treatsEarned;
-  localStorage.setItem('rasari_bananas', bananas);
+  saveActiveChildLocalProgress();
   $('bananaCount').textContent = bananas;
   if (typeof syncProgressToCloud === 'function') syncProgressToCloud();
 
@@ -12099,7 +12187,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.2.1';
+const CURRENT_APP_VERSION = '4.2.2';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
