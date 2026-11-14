@@ -205,7 +205,8 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 .hub-resume-btn:active{transform:scale(0.97) !important}
 
 /* Parent Hub Account & Cloud Sync */
-.hub-account-card{background:#ffffff !important;border:1.5px solid #e2e8f0 !important;border-radius:14px !important;padding:10px 12px !important;display:flex !important;flex-direction:column !important;gap:8px !important}
+.hub-account-card{background:#ffffff !important;border:1.5px solid #e2e8f0 !important;border-radius:14px !important;padding:10px 12px !important;display:flex;flex-direction:column !important;gap:8px !important}
+.hub-account-card.hidden{display:none !important}
 .hub-account-prompt{font-size:11px !important;color:#475569 !important;line-height:1.35 !important;font-weight:600 !important}
 .hub-google-signin-btn{display:flex !important;align-items:center !important;justify-content:center !important;gap:8px !important;background:#ffffff !important;border:1.5px solid #cbd5e1 !important;border-radius:10px !important;padding:7px 12px !important;font-size:12.5px !important;font-weight:700 !important;color:#1e293b !important;box-shadow:0 1px 3px rgba(0,0,0,0.06) !important;cursor:pointer !important;transition:all 0.15s ease !important}
 .hub-google-signin-btn:hover{background:#f1f5f9 !important;border-color:#94a3b8 !important}
@@ -1159,12 +1160,12 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
             <span>Sign in with Google</span>
           </button>
         </div>
-        <div class="hub-account-card" id="hubAccountLoggedIn" style="display:none;">
+        <div class="hub-account-card hidden" id="hubAccountLoggedIn" style="display:none !important;">
           <div class="hub-user-info-row">
             <img id="hubUserAvatar" class="hub-user-avatar" src="images/brand/logo_mark.png" alt="User avatar" />
             <div class="hub-user-meta">
-              <span class="hub-user-name" id="hubUserName">Parent</span>
-              <span class="hub-user-email" id="hubUserEmail">parent@example.com</span>
+              <span class="hub-user-name" id="hubUserName"></span>
+              <span class="hub-user-email" id="hubUserEmail"></span>
             </div>
             <button type="button" class="hub-signout-btn" id="googleSignOutBtn" title="Sign out">Sign out</button>
           </div>
@@ -5924,7 +5925,7 @@ $('bananaCount').textContent = bananas;
 
 // Rasari Cloud & Auth State (Unified with Mathemagic)
 const SUPABASE_URL = 'https://lqllutoeidiwfxdkuezd.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGx1dG9laWRpd2Z4ZGt1ZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDYwNzEzODAsImV4cCI6MjA2MTY0NzM4MH0.iht5HAQ6E-n03o3xN7C4hZ64J2Ea7v2bA66I4c6kXnE';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxxbGx1dG9laWRpd2Z4ZGt1ZXpkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2MjQ3ODUsImV4cCI6MjA5MjIwMDc4NX0.l7R2xiU2VhO5AjVJoBQQGOyBpwW7JlYIsI_2wIht5HA';
 let supabaseClient = null;
 let currentUserSession = null;
 let syncInProgress = false;
@@ -5948,9 +5949,36 @@ function initSupabaseAuth() {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        detectSessionInUrl: true
+        detectSessionInUrl: true,
+        flowType: 'implicit'
       }
     });
+
+    // Immediate extraction from URL hash fragment if returning from Google OAuth redirect
+    if (window.location.hash && window.location.hash.includes('access_token=')) {
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || '';
+        if (accessToken) {
+          supabaseClient.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          }).then(({ data, error }) => {
+            if (data && data.session) {
+              currentUserSession = data.session;
+              updateAuthUI();
+              syncProgressFromCloud();
+              try {
+                window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+              } catch (_) {}
+            }
+          }).catch(console.warn);
+        }
+      } catch (hashErr) {
+        console.warn('[Supabase] Hash parse error:', hashErr);
+      }
+    }
 
     supabaseClient.auth.getSession().then(({ data, error }) => {
       if (data && data.session) {
@@ -5971,6 +5999,11 @@ function initSupabaseAuth() {
       if (event === 'SIGNED_IN' && session) {
         syncProgressFromCloud();
         logAnalyticsEvent('parent_signed_in', { email: session.user?.email });
+        try {
+          if (window.location.hash) {
+            window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+          }
+        } catch (_) {}
       } else if (event === 'SIGNED_OUT') {
         logAnalyticsEvent('parent_signed_out', {});
       }
@@ -6013,6 +6046,9 @@ async function signOutUser() {
     await supabaseClient.auth.signOut();
     currentUserSession = null;
     updateAuthUI();
+    try {
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+    } catch (_) {}
   } catch (err) {
     console.error('[Supabase Auth] Sign-out error:', err);
   }
@@ -6024,18 +6060,26 @@ function updateAuthUI() {
   if (!outCard || !inCard) return;
 
   if (currentUserSession && currentUserSession.user) {
-    outCard.style.display = 'none';
-    inCard.style.display = 'flex';
+    outCard.style.setProperty('display', 'none', 'important');
+    outCard.classList.add('hidden');
+    inCard.style.setProperty('display', 'flex', 'important');
+    inCard.classList.remove('hidden');
     const user = currentUserSession.user;
     const meta = user.user_metadata || {};
-    if ($('hubUserName')) $('hubUserName').textContent = meta.full_name || meta.name || user.email?.split('@')[0] || 'Parent';
-    if ($('hubUserEmail')) $('hubUserEmail').textContent = user.email || '';
+    const displayName = meta.full_name || meta.name || user.email?.split('@')[0] || 'Parent';
+    const emailStr = user.email || '';
+    if ($('hubUserName')) $('hubUserName').textContent = displayName;
+    if ($('hubUserEmail')) $('hubUserEmail').textContent = emailStr;
     if ($('hubUserAvatar')) {
       $('hubUserAvatar').src = meta.avatar_url || meta.picture || 'images/brand/logo_mark.png';
     }
   } else {
-    outCard.style.display = 'flex';
-    inCard.style.display = 'none';
+    outCard.style.setProperty('display', 'flex', 'important');
+    outCard.classList.remove('hidden');
+    inCard.style.setProperty('display', 'none', 'important');
+    inCard.classList.add('hidden');
+    if ($('hubUserName')) $('hubUserName').textContent = '';
+    if ($('hubUserEmail')) $('hubUserEmail').textContent = '';
   }
 }
 
@@ -11636,7 +11680,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.0';
+const CURRENT_APP_VERSION = '4.1.1';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
