@@ -1160,6 +1160,16 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
             <button type="button" id="hubTestAIBtn" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; color:#334155; cursor:pointer;">🧪 Test AI Gateway</button>
             <span id="hubTestAIStatus" style="font-size:11px; font-weight:600;"></span>
           </div>
+          <!-- Central Child Profile Roster -->
+          <div class="hub-child-roster-box" id="hubChildRosterBox" style="margin-top:10px; padding-top:8px; border-top:1px dashed #cbd5e1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">👶 Active Child Profile</span>
+              <button type="button" id="hubAddChildBtn" style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; color:#0369a1; cursor:pointer;">+ Add Child</button>
+            </div>
+            <div id="hubChildPillsList" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+              <span style="font-size:11px; color:#94a3b8;">Loading profiles...</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1240,8 +1250,41 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
         ✍️ Continue Writing
       </button>
       <div style="text-align:center; margin-top:12px; padding-top:8px; border-top:1px solid #f1f5f9;">
-        <span id="appVersionBadge" style="font-size:11px; color:#64748b; font-family:ui-monospace,SFMono-Regular,monospace; font-weight:600; cursor:pointer;" title="Tap to check for updates">Varnacular v4.1.6</span>
+        <span id="appVersionBadge" style="font-size:11px; color:#64748b; font-family:ui-monospace,SFMono-Regular,monospace; font-weight:600; cursor:pointer;" title="Tap to check for updates">Varnacular v4.2.0</span>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD CHILD PROFILE MODAL (with Grade Selection) -->
+<div class="modal" id="addChildModal" aria-label="Add Child Profile">
+  <div class="dialog" style="max-width:380px; width:90%; padding:20px; border-radius:18px; background:#ffffff; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size:22px;">👶</span>
+        <h3 style="margin:0; font-size:18px; color:#0f172a;">Add Child Profile</h3>
+      </div>
+      <button type="button" class="sticker-close" id="closeAddChildModalBtn" aria-label="Close" style="background:none; border:none; font-size:18px; color:#64748b; cursor:pointer;">✕</button>
+    </div>
+
+    <div style="margin-bottom:14px;">
+      <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Child's Name</label>
+      <input type="text" id="newChildNameInput" placeholder="e.g. Kashvi" style="width:100%; box-sizing:border-box; padding:10px 12px; border-radius:10px; border:1px solid #cbd5e1; font-size:14px; outline:none;" />
+    </div>
+
+    <div style="margin-bottom:18px;">
+      <label style="display:block; font-size:12px; font-weight:700; color:#475569; margin-bottom:6px;">Select Grade for Varnacular</label>
+      <div id="newChildGradeSelector" style="display:grid; grid-template-columns:repeat(2, 1fr); gap:8px;">
+        <button type="button" class="child-grade-btn" data-grade="0" style="padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">LKG</button>
+        <button type="button" class="child-grade-btn" data-grade="0" style="padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">UKG</button>
+        <button type="button" class="child-grade-btn active-grade" data-grade="1" style="padding:8px 10px; border-radius:10px; border:1px solid #0284c7; background:#0284c7; color:#ffffff; font-size:12px; font-weight:700; cursor:pointer;">Grade 1 (Default)</button>
+        <button type="button" class="child-grade-btn" data-grade="2" style="padding:8px 10px; border-radius:10px; border:1px solid #cbd5e1; background:#f8fafc; color:#334155; font-size:12px; font-weight:700; cursor:pointer;">Grade 2</button>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end; gap:8px;">
+      <button type="button" id="cancelAddChildBtn" style="padding:8px 14px; border-radius:10px; border:1px solid #e2e8f0; background:#f8fafc; color:#64748b; font-size:13px; font-weight:600; cursor:pointer;">Cancel</button>
+      <button type="button" id="confirmSaveChildBtn" style="padding:8px 18px; border-radius:10px; border:none; background:#0f766e; color:#ffffff; font-size:13px; font-weight:700; cursor:pointer;">Save Child</button>
     </div>
   </div>
 </div>
@@ -5909,17 +5952,83 @@ let currentAksharas = [];
 let currentAksharaIndex = 0;
 let aksharaStrokesMap = [];
 
+const $ = id => document.getElementById(id) || (id === 'erase' ? document.getElementById('clearBtn') : null) || (id === 'clearBtn' ? document.getElementById('erase') : null);
+const w = $('write'), ctx = w.getContext('2d');
+
 let guideMode = 'auto'; // 'auto', 'on', 'off'
 let hintActive = false;
 let hintTimer = null;
 
-let bananas = parseInt(localStorage.getItem('rasari_bananas') || '0', 10);
-let masteryData = JSON.parse(localStorage.getItem('rasari_mastery_v2') || '{}');
+let currentStudentsList = [];
+let activeChildProfile = null;
+let selectedGradeForNewChild = 1;
 
-const $ = id => document.getElementById(id) || (id === 'erase' ? document.getElementById('clearBtn') : null) || (id === 'clearBtn' ? document.getElementById('erase') : null);
-const w = $('write'), ctx = w.getContext('2d');
+function getStudentStoragePrefix() {
+  if (activeChildProfile && activeChildProfile.id) {
+    return 'rasari_' + activeChildProfile.id + '_';
+  }
+  const savedId = localStorage.getItem('rasari_active_student_id');
+  if (savedId) return 'rasari_' + savedId + '_';
+  return 'rasari_';
+}
 
-$('bananaCount').textContent = bananas;
+let bananas = 0;
+let masteryData = {};
+
+function loadActiveChildLocalProgress() {
+  const prefix = getStudentStoragePrefix();
+  const savedMastery = localStorage.getItem(prefix + 'mastery_v2');
+  const savedBananas = localStorage.getItem(prefix + 'bananas');
+
+  if (savedMastery !== null) {
+    try {
+      masteryData = JSON.parse(savedMastery);
+    } catch (_) {
+      masteryData = {};
+    }
+  } else {
+    const legacyMastery = localStorage.getItem('rasari_mastery_v2');
+    if (legacyMastery) {
+      try {
+        masteryData = JSON.parse(legacyMastery);
+        localStorage.setItem(prefix + 'mastery_v2', legacyMastery);
+      } catch (_) {
+        masteryData = {};
+      }
+    } else {
+      masteryData = {};
+    }
+  }
+
+  if (savedBananas !== null) {
+    bananas = parseInt(savedBananas || '0', 10);
+  } else {
+    const legacyBananas = localStorage.getItem('rasari_bananas');
+    if (legacyBananas !== null) {
+      bananas = parseInt(legacyBananas || '0', 10);
+      localStorage.setItem(prefix + 'bananas', legacyBananas);
+    } else {
+      bananas = 0;
+    }
+  }
+
+  const bEl = $('bananaCount');
+  if (bEl) bEl.textContent = bananas;
+  const tEl = $('treatCount');
+  if (tEl) tEl.textContent = bananas;
+}
+
+function saveActiveChildLocalProgress() {
+  const prefix = getStudentStoragePrefix();
+  try {
+    localStorage.setItem(prefix + 'mastery_v2', JSON.stringify(masteryData));
+    localStorage.setItem(prefix + 'bananas', bananas.toString());
+    localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
+    localStorage.setItem('rasari_bananas', bananas.toString());
+  } catch (_) {}
+}
+
+loadActiveChildLocalProgress();
 
 // Rasari Cloud & Auth State (Unified with Mathemagic)
 const SUPABASE_URL = 'https://lqllutoeidiwfxdkuezd.supabase.co';
@@ -6071,6 +6180,7 @@ function updateAuthUI() {
     if ($('hubUserAvatar')) {
       $('hubUserAvatar').src = meta.avatar_url || meta.picture || 'images/brand/logo_mark.png';
     }
+    loadCentralStudentProfiles(user.id);
   } else {
     outCard.style.setProperty('display', 'flex', 'important');
     outCard.classList.remove('hidden');
@@ -6078,11 +6188,258 @@ function updateAuthUI() {
     inCard.classList.add('hidden');
     if ($('hubUserName')) $('hubUserName').textContent = '';
     if ($('hubUserEmail')) $('hubUserEmail').textContent = '';
+    currentStudentsList = [];
+    activeChildProfile = null;
+  }
+}
+
+async function loadCentralStudentProfiles(userId) {
+  if (!supabaseClient || !userId) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('students')
+      .select('id, name, current_grade, is_paid, plan_type, app')
+      .eq('parent_id', userId)
+      .eq('app', 'varnacular')
+      .order('created_at', { ascending: true });
+
+    if (!error && Array.isArray(data)) {
+      currentStudentsList = data;
+      
+      const savedChildId = localStorage.getItem('rasari_active_student_id');
+      const found = currentStudentsList.find(s => s.id === savedChildId);
+      if (found) {
+        activeChildProfile = found;
+      } else if (currentStudentsList.length > 0) {
+        activeChildProfile = currentStudentsList[0];
+        try {
+          localStorage.setItem('rasari_active_student_id', activeChildProfile.id);
+          localStorage.setItem('rasari_active_student_name', activeChildProfile.name);
+        } catch (_) {}
+      } else {
+        activeChildProfile = null;
+      }
+      loadActiveChildLocalProgress();
+      renderChildPillsUI();
+      if (typeof render === 'function') render();
+      syncProgressFromCloud();
+    }
+  } catch (err) {
+    console.warn('[Supabase] Failed to load student profiles:', err);
+  }
+}
+
+function renderChildPillsUI() {
+  const listEl = $('hubChildPillsList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  if (currentStudentsList.length === 0) {
+    listEl.innerHTML = '<span style="font-size:11px; color:#64748b;">No child profile linked yet. Tap "+ Add Child" above.</span>';
+    return;
+  }
+
+  currentStudentsList.forEach(child => {
+    const isActive = activeChildProfile && activeChildProfile.id === child.id;
+    const pill = document.createElement('div');
+    pill.style.cssText = `
+      display: inline-flex;
+      align-items: center;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.15s ease;
+      border: 1px solid ${isActive ? '#0284c7' : '#cbd5e1'};
+      background: ${isActive ? '#0284c7' : '#f8fafc'};
+      color: ${isActive ? '#ffffff' : '#334155'};
+    `;
+
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = `
+      padding: 4px 6px 4px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: inherit;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    `;
+    const gradeLabel = child.current_grade === 0 ? 'KG' : `Gr. ${child.current_grade || 1}`;
+    btn.innerHTML = `👶 ${child.name} <span style="font-size:9px; opacity:0.85;">(${gradeLabel})</span>`;
+    btn.addEventListener('click', () => {
+      if (activeChildProfile && activeChildProfile.id === child.id) return;
+      saveActiveChildLocalProgress();
+      activeChildProfile = child;
+      try {
+        localStorage.setItem('rasari_active_student_id', child.id);
+        localStorage.setItem('rasari_active_student_name', child.name);
+      } catch (_) {}
+      loadActiveChildLocalProgress();
+      renderChildPillsUI();
+      if (typeof render === 'function') render();
+      syncProgressFromCloud();
+    });
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.title = `Remove ${child.name}`;
+    removeBtn.setAttribute('aria-label', `Remove ${child.name}`);
+    removeBtn.style.cssText = `
+      padding: 4px 8px 4px 4px;
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      background: transparent;
+      border: none;
+      color: inherit;
+      opacity: 0.65;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.15s ease, color 0.15s ease;
+    `;
+    removeBtn.innerHTML = `&times;`;
+    removeBtn.addEventListener('mouseenter', () => {
+      removeBtn.style.opacity = '1';
+      if (!isActive) removeBtn.style.color = '#ef4444';
+    });
+    removeBtn.addEventListener('mouseleave', () => {
+      removeBtn.style.opacity = '0.65';
+      if (!isActive) removeBtn.style.color = '#334155';
+    });
+    removeBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handleRemoveChild(child);
+    });
+
+    pill.appendChild(btn);
+    pill.appendChild(removeBtn);
+    listEl.appendChild(pill);
+  });
+}
+
+async function handleRemoveChild(child) {
+  if (!child || !child.id) return;
+  const confirmed = confirm(`Are you sure you want to remove "${child.name}" from Varnacular?\n\nThis will remove their profile from your Varnacular child list.`);
+  if (!confirmed) return;
+
+  try {
+    if (supabaseClient) {
+      const { error } = await supabaseClient
+        .from('students')
+        .delete()
+        .eq('id', child.id);
+
+      if (error) {
+        alert('Could not remove child: ' + (error.message || 'Database error'));
+        return;
+      }
+    }
+
+    currentStudentsList = currentStudentsList.filter(c => c.id !== child.id);
+
+    if (activeChildProfile && activeChildProfile.id === child.id) {
+      if (currentStudentsList.length > 0) {
+        activeChildProfile = currentStudentsList[0];
+        try {
+          localStorage.setItem('rasari_active_student_id', activeChildProfile.id);
+          localStorage.setItem('rasari_active_student_name', activeChildProfile.name);
+        } catch (_) {}
+      } else {
+        activeChildProfile = null;
+        try {
+          localStorage.removeItem('rasari_active_student_id');
+          localStorage.removeItem('rasari_active_student_name');
+        } catch (_) {}
+      }
+      loadActiveChildLocalProgress();
+      if (typeof render === 'function') render();
+    }
+
+    renderChildPillsUI();
+  } catch (err) {
+    alert('Failed to remove child: ' + (err?.message || 'Network error'));
+  }
+}
+
+function openAddChildModal() {
+  const modal = $('addChildModal');
+  if (!modal) return;
+  const input = $('newChildNameInput');
+  if (input) input.value = '';
+  selectedGradeForNewChild = 1;
+  updateGradeSelectorUI();
+  modal.style.display = 'flex';
+}
+
+function closeAddChildModal() {
+  const modal = $('addChildModal');
+  if (modal) modal.style.display = 'none';
+}
+
+function updateGradeSelectorUI() {
+  const selector = $('newChildGradeSelector');
+  if (!selector) return;
+  const buttons = selector.querySelectorAll('.child-grade-btn');
+  buttons.forEach(btn => {
+    const g = parseInt(btn.getAttribute('data-grade'), 10);
+    const isSel = (g === selectedGradeForNewChild);
+    btn.style.border = isSel ? '1px solid #0284c7' : '1px solid #cbd5e1';
+    btn.style.background = isSel ? '#0284c7' : '#f8fafc';
+    btn.style.color = isSel ? '#ffffff' : '#334155';
+  });
+}
+
+async function handleSaveNewChild(userId) {
+  const input = $('newChildNameInput');
+  const name = input ? input.value.trim() : '';
+  if (!name) {
+    alert("Please enter your child's name.");
+    return;
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('students')
+      .insert({
+        parent_id: userId,
+        name: name,
+        current_grade: selectedGradeForNewChild,
+        app: 'varnacular'
+      })
+      .select()
+      .single();
+
+    if (!error && data) {
+      saveActiveChildLocalProgress();
+      currentStudentsList.push(data);
+      activeChildProfile = data;
+      try {
+        localStorage.setItem('rasari_active_student_id', data.id);
+        localStorage.setItem('rasari_active_student_name', data.name);
+      } catch (_) {}
+      loadActiveChildLocalProgress();
+      renderChildPillsUI();
+      if (typeof render === 'function') render();
+      closeAddChildModal();
+      syncProgressToCloud();
+    } else {
+      alert('Could not add child: ' + (error?.message || 'Database error'));
+    }
+  } catch (err) {
+    alert('Failed to create child profile: ' + (err?.message || 'Network error'));
   }
 }
 
 async function syncProgressToCloud() {
   if (!supabaseClient || !currentUserSession || !currentUserSession.user || syncInProgress) return;
+  const student_id = activeChildProfile?.id || null;
+  if (currentStudentsList.length > 0 && !student_id) return;
+
   try {
     syncInProgress = true;
     const user_id = currentUserSession.user.id;
@@ -6094,10 +6451,13 @@ async function syncProgressToCloud() {
       device_id: getDeviceId(),
       updated_at: new Date().toISOString()
     };
+    if (student_id) {
+      payload.student_id = student_id;
+    }
     const { error } = await supabaseClient
       .schema('varnacular')
       .from('user_progress')
-      .upsert(payload, { onConflict: 'user_id' });
+      .upsert(payload, { onConflict: student_id ? 'user_id,student_id' : 'user_id' });
     if (error) {
       console.warn('[Cloud Sync] Upload error:', error);
     } else {
@@ -6112,14 +6472,22 @@ async function syncProgressToCloud() {
 
 async function syncProgressFromCloud() {
   if (!supabaseClient || !currentUserSession || !currentUserSession.user) return;
+  const student_id = activeChildProfile?.id || null;
+  if (currentStudentsList.length > 0 && !student_id) return;
+
   try {
     const user_id = currentUserSession.user.id;
-    const { data, error } = await supabaseClient
+    let query = supabaseClient
       .schema('varnacular')
       .from('user_progress')
       .select('*')
-      .eq('user_id', user_id)
-      .maybeSingle();
+      .eq('user_id', user_id);
+
+    if (student_id) {
+      query = query.eq('student_id', student_id);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) {
       console.warn('[Cloud Sync] Download error:', error);
@@ -6142,14 +6510,13 @@ async function syncProgressFromCloud() {
       }
       if (typeof data.bananas === 'number' && data.bananas > bananas) {
         bananas = data.bananas;
-        $('bananaCount').textContent = bananas;
-        localStorage.setItem('rasari_bananas', bananas);
         changed = true;
       }
       if (changed) {
-        localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
-        if (typeof updateStats === 'function') updateStats();
-        if (typeof renderStickerBook === 'function') renderStickerBook();
+        saveActiveChildLocalProgress();
+        if ($('bananaCount')) $('bananaCount').textContent = bananas;
+        if ($('treatCount')) $('treatCount').textContent = bananas;
+        if (typeof render === 'function') render();
       }
 
       // Check if local device has higher progress or additional letters not yet in cloud
@@ -6271,7 +6638,7 @@ function updateLetterStar(c) {
     m.trueMastery = true;
   }
 
-  localStorage.setItem('rasari_mastery_v2', JSON.stringify(masteryData));
+  saveActiveChildLocalProgress();
   if (typeof syncProgressToCloud === 'function') syncProgressToCloud();
   return m.star;
 }
@@ -9651,7 +10018,7 @@ $('done').onclick = e => {
   const isFreehand = (guideMode === 'auto') ? (currentTier === 2) : (guideMode === 'off');
   let treatsEarned = isFreehand ? 3 : 1;
   bananas += treatsEarned;
-  localStorage.setItem('rasari_bananas', bananas);
+  saveActiveChildLocalProgress();
   $('bananaCount').textContent = bananas;
   if (typeof syncProgressToCloud === 'function') syncProgressToCloud();
 
@@ -10503,6 +10870,43 @@ function initLearningHub() {
   if ($('googleSignOutBtn')) {
     $('googleSignOutBtn').addEventListener('click', () => {
       signOutUser();
+    });
+  }
+
+  if ($('hubAddChildBtn')) {
+    $('hubAddChildBtn').addEventListener('click', () => {
+      if (currentUserSession && currentUserSession.user) {
+        openAddChildModal();
+      } else {
+        alert('Please sign in with Google first to add child profiles.');
+      }
+    });
+  }
+
+  if ($('closeAddChildModalBtn')) {
+    $('closeAddChildModalBtn').addEventListener('click', closeAddChildModal);
+  }
+
+  if ($('cancelAddChildBtn')) {
+    $('cancelAddChildBtn').addEventListener('click', closeAddChildModal);
+  }
+
+  if ($('confirmSaveChildBtn')) {
+    $('confirmSaveChildBtn').addEventListener('click', () => {
+      if (currentUserSession && currentUserSession.user) {
+        handleSaveNewChild(currentUserSession.user.id);
+      }
+    });
+  }
+
+  const gradeSelector = $('newChildGradeSelector');
+  if (gradeSelector) {
+    gradeSelector.addEventListener('click', (e) => {
+      const btn = e.target.closest('.child-grade-btn');
+      if (btn) {
+        selectedGradeForNewChild = parseInt(btn.getAttribute('data-grade'), 10);
+        updateGradeSelectorUI();
+      }
     });
   }
 
@@ -11783,7 +12187,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.8';
+const CURRENT_APP_VERSION = '4.2.3';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;

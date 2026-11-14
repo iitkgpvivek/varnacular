@@ -1134,6 +1134,19 @@ test('Rasari Google Auth, Cloud Sync & Secure AI Gateway Integration', () => {
   assert(scriptContent.includes("BACKUP_GEMINI_API_KEY = ''"), 'Backup client API key must remain safe and unexposed');
 });
 
+test('Central Rasari House: Child Profile Roster integration', () => {
+  assert(html.includes('id="hubChildRosterBox"'), 'Must contain hubChildRosterBox');
+  assert(html.includes('id="hubAddChildBtn"'), 'Must contain hubAddChildBtn');
+  assert(html.includes('id="hubChildPillsList"'), 'Must contain hubChildPillsList');
+  assert(html.includes('loadCentralStudentProfiles'), 'Must include loadCentralStudentProfiles function');
+  assert(html.includes("from('students')"), 'Must query central students table');
+  assert(html.includes('handleRemoveChild'), 'Must include handleRemoveChild function for removing profiles');
+  assert(html.includes('loadActiveChildLocalProgress'), 'Must support per-child local progress loading');
+  assert(html.includes('saveActiveChildLocalProgress'), 'Must support per-child local progress saving');
+  assert(html.includes('getStudentStoragePrefix'), 'Must scope localStorage keys per student');
+  assert(html.includes('payload.student_id = student_id'), 'Must isolate cloud progress by student_id');
+});
+
 console.log('\n----------------------------------------------------');
 console.log(`  Tests: ${passedTests} passed, ${totalTests} total`);
 console.log('----------------------------------------------------\n');

@@ -1,4 +1,4 @@
-const APP_VERSION = '4.1.8';
+const APP_VERSION = '4.2.3';
 const CACHE = `rasari-hindi-v${APP_VERSION}`;
 const ASSETS = [
   './',
