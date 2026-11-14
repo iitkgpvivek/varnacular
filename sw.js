@@ -1,4 +1,4 @@
-const APP_VERSION = '4.1.5';
+const APP_VERSION = '4.1.6';
 const CACHE = `rasari-hindi-v${APP_VERSION}`;
 const ASSETS = [
   './',
@@ -575,15 +575,14 @@ const ASSETS = [
   './audio/word_vy_ya.m4a'
 ];
 
-// Install: Cache all core assets and activate immediately
+// Install: Cache all core assets quietly in background (no aggressive skipWaiting)
 self.addEventListener('install', (event) => {
-  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// Activate: Delete old caches and claim clients immediately
+// Activate: Delete old caches quietly without forcefully evicting open writing pages
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
@@ -594,7 +593,7 @@ self.addEventListener('activate', (event) => {
           }
         })
       )
-    ).then(() => self.clients.claim())
+    )
   );
 });
 

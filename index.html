@@ -717,25 +717,13 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
 }
 
 .app-version-badge {
-  position: fixed;
-  bottom: 4px;
-  right: 6px;
-  font-size: 10px;
+  display: inline-block;
+  font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, monospace;
-  color: #0f3256;
-  opacity: 0.32;
-  background: rgba(255, 255, 255, 0.45);
-  padding: 1px 6px;
-  border-radius: 4px;
-  z-index: 99999;
+  color: #64748b;
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-}
-.app-version-badge:hover, .app-version-badge:active {
-  opacity: 0.95;
-  background: #ffffff;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
 }
 
 /* ========================================================
@@ -1107,8 +1095,6 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
     </div>
   </div>
 
-  <div id="appVersionBadge" class="app-version-badge" title="Varnacular (Tap to check for updates)">Varnacular v4.0.1</div>
-
 <div class="modal" id="modal">
   <div class="dialog">
     <h2 id="mt">Great job!</h2>
@@ -1256,6 +1242,9 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
       <button type="button" class="hub-resume-btn" id="hubResumeBtn">
         ✍️ Continue Writing
       </button>
+      <div style="text-align:center; margin-top:12px; padding-top:8px; border-top:1px solid #f1f5f9;">
+        <span id="appVersionBadge" style="font-size:11px; color:#64748b; font-family:ui-monospace,SFMono-Regular,monospace; font-weight:600; cursor:pointer;" title="Tap to check for updates">Varnacular v4.1.6</span>
+      </div>
     </div>
   </div>
 </div>
@@ -11423,6 +11412,7 @@ function setStep(stepNum) {
     stepNum = 1;
   }
   currentStep = stepNum;
+  try { localStorage.setItem('rasari_curr_step', stepNum); } catch (_) {}
   curAttemptInLearn = 0;
   testPasses = 0;
 
@@ -11719,29 +11709,36 @@ if ($('closeAudioReviewBtn')) {
   makeTouchResponsive($('closeAudioReviewBtn'), closeAudioReviewModal);
 }
 
-// PWA Auto-Update Detection
+// PWA Auto-Update Detection (Gentle & Child-Safe: Never interrupts active writing!)
 function setupPWAUpdate() {
   if (!('serviceWorker' in navigator) || location.protocol === 'file:') return;
   let refreshing = false;
+  let userRequestedReload = false;
+
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
+    // Strictly reload ONLY if the parent/user explicitly clicked "Update Now"
+    if (userRequestedReload && !refreshing) {
       refreshing = true;
       window.location.reload();
     }
   });
+
   window.addEventListener('load', async () => {
     try {
       const reg = await navigator.serviceWorker.register('./sw.js');
       const toast = $('update-toast'), btn = $('update-btn');
+
       function promptUpdate(worker) {
         if (!toast || !btn) return;
         toast.classList.add('show');
         btn.onclick = () => {
+          userRequestedReload = true;
           btn.disabled = true;
           btn.textContent = 'Updating...';
           worker.postMessage({ type: 'SKIP_WAITING' });
         };
       }
+
       if (reg.waiting) promptUpdate(reg.waiting);
       reg.addEventListener('updatefound', () => {
         const w = reg.installing;
@@ -11753,18 +11750,15 @@ function setupPWAUpdate() {
           });
         }
       });
+      // Checked quietly once on app startup, zero mid-session polling
       try { reg.update(); } catch(e) {}
-      setInterval(() => reg.update().catch(() => {}), 45000);
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') reg.update().catch(() => {});
-      });
     } catch (e) {
       console.warn('SW register error', e);
     }
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.5';
+const CURRENT_APP_VERSION = '4.1.6';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
@@ -11794,6 +11788,10 @@ try {
   const savedIndices = JSON.parse(localStorage.getItem('rasari_lang_idx') || '{}');
   if (typeof savedIndices[currentLanguage] === 'number') {
     idx = savedIndices[currentLanguage];
+  }
+  const savedStep = parseInt(localStorage.getItem('rasari_curr_step'), 10);
+  if (savedStep >= 1 && savedStep <= 3) {
+    currentStep = savedStep;
   }
 } catch (_) {}
 initLetterAvatarPuck();
