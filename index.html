@@ -8885,7 +8885,10 @@ Respond ONLY with a JSON object:
 
         const gwPayload = {
           provider: 'gemini',
-          model: 'gemini-flash-lite-latest',
+          model: 'gemini-2.5-flash-lite',
+          models: ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'],
+          app: 'varnacular',
+          payload: payload,
           contents: payload.contents,
           generationConfig: payload.generationConfig
         };
@@ -8903,11 +8906,24 @@ Respond ONLY with a JSON object:
         clearTimeout(gwTimeoutId);
 
         if (gwRes.ok) {
-          response = gwRes;
-          chosenModel = 'gemini-flash-lite-latest (Edge Gateway)';
+          const rawData = await gwRes.json();
+          if (rawData && rawData.ok === false) {
+            console.warn('[AI Gateway] Upstream error:', rawData);
+            lastErrorReason = (rawData && rawData.error) ? `Gateway: ${rawData.error}` : 'Gateway Upstream Error';
+          } else {
+            response = rawData;
+            chosenModel = (rawData && rawData.model) ? `${rawData.model} (Edge Gateway)` : 'gemini (Edge Gateway)';
+          }
         } else {
-          lastErrorReason = (gwRes.status === 429) ? 'Daily AI Quota Reached (250/day)' : `Gateway HTTP ${gwRes.status}`;
-          console.warn('[AI Gateway] Status:', gwRes.status, 'falling back to direct/local...');
+          let errDetail = '';
+          try {
+            const errJson = await gwRes.json();
+            errDetail = errJson.error || errJson.message || '';
+          } catch (_) {}
+          lastErrorReason = (gwRes.status === 429)
+            ? 'Daily AI Quota Reached (250/day)'
+            : (errDetail ? `Gateway: ${errDetail}` : `Gateway HTTP ${gwRes.status}`);
+          console.warn('[AI Gateway] Status:', gwRes.status, errDetail, 'falling back to direct/local...');
         }
       } catch (gwErr) {
         lastErrorReason = (gwErr && gwErr.name === 'AbortError') ? 'Timeout (>12s)' : 'Gateway Error';
@@ -8958,8 +8974,14 @@ Respond ONLY with a JSON object:
     }
 
     window.lastGeminiFailureReason = null;
-    const data = await response.json();
-    const candidate = data.candidates?.[0];
+    let data = null;
+    if (response instanceof Response) {
+      const json = await response.json();
+      data = (json && json.data && json.data.candidates) ? json.data : json;
+    } else if (response && typeof response === 'object') {
+      data = (response.data && response.data.candidates) ? response.data : response;
+    }
+    const candidate = data?.candidates?.[0];
     const parts = candidate?.content?.parts || [];
     let text = '';
     for (const p of parts) {
@@ -11680,7 +11702,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.1';
+const CURRENT_APP_VERSION = '4.1.2';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
