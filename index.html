@@ -1160,6 +1160,16 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
             <button type="button" id="hubTestAIBtn" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; color:#334155; cursor:pointer;">🧪 Test AI Gateway</button>
             <span id="hubTestAIStatus" style="font-size:11px; font-weight:600;"></span>
           </div>
+          <!-- Central Child Profile Roster -->
+          <div class="hub-child-roster-box" id="hubChildRosterBox" style="margin-top:10px; padding-top:8px; border-top:1px dashed #cbd5e1;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <span style="font-size:11px; font-weight:700; color:#475569; text-transform:uppercase; letter-spacing:0.5px;">👶 Active Child Profile</span>
+              <button type="button" id="hubAddChildBtn" style="background:#e0f2fe; border:1px solid #7dd3fc; border-radius:6px; padding:2px 8px; font-size:11px; font-weight:700; color:#0369a1; cursor:pointer;">+ Add Child</button>
+            </div>
+            <div id="hubChildPillsList" style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+              <span style="font-size:11px; color:#94a3b8;">Loading profiles...</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -6071,6 +6081,7 @@ function updateAuthUI() {
     if ($('hubUserAvatar')) {
       $('hubUserAvatar').src = meta.avatar_url || meta.picture || 'images/brand/logo_mark.png';
     }
+    loadCentralStudentProfiles(user.id);
   } else {
     outCard.style.setProperty('display', 'flex', 'important');
     outCard.classList.remove('hidden');
@@ -6078,6 +6089,111 @@ function updateAuthUI() {
     inCard.classList.add('hidden');
     if ($('hubUserName')) $('hubUserName').textContent = '';
     if ($('hubUserEmail')) $('hubUserEmail').textContent = '';
+    currentStudentsList = [];
+    activeChildProfile = null;
+  }
+}
+
+let currentStudentsList = [];
+let activeChildProfile = null;
+
+async function loadCentralStudentProfiles(userId) {
+  if (!supabaseClient || !userId) return;
+  try {
+    const { data, error } = await supabaseClient
+      .from('students')
+      .select('id, name, current_grade, is_paid, plan_type')
+      .eq('parent_id', userId)
+      .order('created_at', { ascending: true });
+
+    if (!error && Array.isArray(data)) {
+      currentStudentsList = data;
+      
+      const savedChildId = localStorage.getItem('rasari_active_student_id');
+      const found = currentStudentsList.find(s => s.id === savedChildId);
+      if (found) {
+        activeChildProfile = found;
+      } else if (currentStudentsList.length > 0) {
+        activeChildProfile = currentStudentsList[0];
+        try {
+          localStorage.setItem('rasari_active_student_id', activeChildProfile.id);
+          localStorage.setItem('rasari_active_student_name', activeChildProfile.name);
+        } catch (_) {}
+      } else {
+        activeChildProfile = null;
+      }
+      renderChildPillsUI();
+    }
+  } catch (err) {
+    console.warn('[Supabase] Failed to load student profiles:', err);
+  }
+}
+
+function renderChildPillsUI() {
+  const listEl = $('hubChildPillsList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  if (currentStudentsList.length === 0) {
+    listEl.innerHTML = '<span style="font-size:11px; color:#64748b;">No child profile linked yet. Tap "+ Add Child" above.</span>';
+    return;
+  }
+
+  currentStudentsList.forEach(child => {
+    const isActive = activeChildProfile && activeChildProfile.id === child.id;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.style.cssText = `
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      transition: all 0.15s ease;
+      border: 1px solid ${isActive ? '#0284c7' : '#cbd5e1'};
+      background: ${isActive ? '#0284c7' : '#f8fafc'};
+      color: ${isActive ? '#ffffff' : '#334155'};
+    `;
+    btn.innerHTML = `👶 ${child.name} <span style="font-size:9px; opacity:0.85;">(Gr. ${child.current_grade || 1})</span>`;
+    btn.addEventListener('click', () => {
+      activeChildProfile = child;
+      try {
+        localStorage.setItem('rasari_active_student_id', child.id);
+        localStorage.setItem('rasari_active_student_name', child.name);
+      } catch (_) {}
+      renderChildPillsUI();
+      syncProgressFromCloud();
+    });
+    listEl.appendChild(btn);
+  });
+}
+
+async function handleAddChildPrompt(userId) {
+  const name = prompt("Enter your child's name for Varnacular:");
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  try {
+    const { data, error } = await supabaseClient
+      .from('students')
+      .insert({ parent_id: userId, name: trimmed, current_grade: 1 })
+      .select()
+      .single();
+    if (!error && data) {
+      currentStudentsList.push(data);
+      activeChildProfile = data;
+      try {
+        localStorage.setItem('rasari_active_student_id', data.id);
+        localStorage.setItem('rasari_active_student_name', data.name);
+      } catch (_) {}
+      renderChildPillsUI();
+    } else {
+      alert('Could not add child: ' + (error?.message || 'Database error'));
+    }
+  } catch (err) {
+    alert('Failed to create child profile: ' + (err?.message || 'Network error'));
   }
 }
 
@@ -10503,6 +10619,16 @@ function initLearningHub() {
   if ($('googleSignOutBtn')) {
     $('googleSignOutBtn').addEventListener('click', () => {
       signOutUser();
+    });
+  }
+
+  if ($('hubAddChildBtn')) {
+    $('hubAddChildBtn').addEventListener('click', () => {
+      if (currentUserSession && currentUserSession.user) {
+        handleAddChildPrompt(currentUserSession.user.id);
+      } else {
+        alert('Please sign in with Google first to add child profiles.');
+      }
     });
   }
 
