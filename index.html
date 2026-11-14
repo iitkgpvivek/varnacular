@@ -1173,6 +1173,10 @@ button{font:inherit;border:0;cursor:pointer;touch-action:manipulation;-webkit-ta
             <span class="hub-sync-badge" id="hubSyncBadge">🟢 Cloud Synced</span>
             <span class="hub-quota-badge">⚡ AI Active</span>
           </div>
+          <div class="hub-ai-test-row" style="margin-top:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button type="button" id="hubTestAIBtn" style="background:#f8fafc; border:1px solid #cbd5e1; border-radius:8px; padding:4px 10px; font-size:11px; font-weight:700; color:#334155; cursor:pointer;">🧪 Test AI Gateway</button>
+            <span id="hubTestAIStatus" style="font-size:11px; font-weight:600;"></span>
+          </div>
         </div>
       </div>
 
@@ -7427,7 +7431,7 @@ function showGuidanceModal(result, targetText, capturedThumb, retrySpeech, retry
         <div style="font-size:16px; font-weight:800; color:#78450d; display:flex; align-items:center; justify-content:center; gap:8px;">
           <span>AI Match: ${result.score || 40}%</span>
           <span style="font-size:11px; font-weight:700; padding:2px 8px; border-radius:12px; border:1px solid ${result.source === 'gemini' ? '#bae6fd; background:#e0f2fe; color:#0369a1;' : '#cbd5e1; background:#f1f5f9; color:#475569;'}">
-            ${result.source === 'gemini' ? '✨ Gemini AI' : '⚡ On-Device'}
+            ${result.source === 'gemini' ? '✨ Gemini AI' : `⚡ On-Device${result.fallbackReason ? ` (${result.fallbackReason})` : ''}`}
           </span>
         </div>
 
@@ -9549,7 +9553,8 @@ $('done').onclick = e => {
       if (!finalOcr.pass) {
         result = Object.assign({}, finalOcr, {
           source: finalOcr.source || 'local',
-          model: finalOcr.model
+          model: finalOcr.model,
+          fallbackReason: geminiFallbackReason
         });
       } else {
         result = Object.assign({}, baseMetrics, finalOcr, {
@@ -9561,7 +9566,8 @@ $('done').onclick = e => {
           detectedWord: targetText,
           expectedWord: targetText,
           source: finalOcr.source || 'local',
-          model: finalOcr.model
+          model: finalOcr.model,
+          fallbackReason: geminiFallbackReason
         });
       }
 
@@ -10489,6 +10495,61 @@ function initLearningHub() {
   if ($('googleSignOutBtn')) {
     $('googleSignOutBtn').addEventListener('click', () => {
       signOutUser();
+    });
+  }
+
+  if ($('hubTestAIBtn')) {
+    $('hubTestAIBtn').addEventListener('click', async () => {
+      const btn = $('hubTestAIBtn');
+      const statusEl = $('hubTestAIStatus');
+      if (!btn || !statusEl) return;
+
+      if (!currentUserSession || !currentUserSession.access_token) {
+        statusEl.innerHTML = '<span style="color:#b91c1c;">⚠️ Sign in with Google first to test AI</span>';
+        return;
+      }
+
+      statusEl.innerHTML = '<span style="color:#0369a1;">⏳ Testing AI Gateway...</span>';
+      btn.disabled = true;
+
+      try {
+        const t0 = performance.now();
+        const payload = {
+          provider: 'gemini',
+          model: 'gemini-2.5-flash-lite',
+          models: ['gemini-2.5-flash-lite', 'gemini-2.5-flash', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest', 'gemini-3.8-flash'],
+          app: 'varnacular',
+          payload: {
+            contents: [{ parts: [{ text: 'Respond with JSON: {"status":"ok"}' }] }],
+            generationConfig: { maxOutputTokens: 64, responseMimeType: 'application/json' }
+          }
+        };
+
+        const res = await fetch('https://lqllutoeidiwfxdkuezd.supabase.co/functions/v1/rasari-ai-gateway', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': SUPABASE_ANON_KEY,
+            'Authorization': 'Bearer ' + currentUserSession.access_token
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const elapsed = Math.round(performance.now() - t0);
+        const json = await res.json().catch(() => ({}));
+
+        if (res.ok && json.ok !== false) {
+          statusEl.innerHTML = `<span style="color:#15803d; font-weight:700;">✅ Connected! (${json.model || 'Gemini'} in ${elapsed}ms)</span>`;
+        } else {
+          const err = json.error || json.message || `HTTP ${res.status}`;
+          statusEl.innerHTML = `<span style="color:#b91c1c; font-weight:700;">❌ Error (${res.status}): ${err}</span>`;
+          console.warn('[AI Gateway Test Error]:', res.status, json);
+        }
+      } catch (err) {
+        statusEl.innerHTML = `<span style="color:#b91c1c; font-weight:700;">❌ Network Error: ${err.message}</span>`;
+      } finally {
+        btn.disabled = false;
+      }
     });
   }
 
@@ -11702,7 +11763,7 @@ function setupPWAUpdate() {
   });
 }
 
-const CURRENT_APP_VERSION = '4.1.2';
+const CURRENT_APP_VERSION = '4.1.3';
 const verBadge = $('appVersionBadge');
 if (verBadge) {
   verBadge.textContent = 'Varnacular v' + CURRENT_APP_VERSION;
